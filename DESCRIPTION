@@ -1,0 +1,32 @@
+Package: ENGEP
+Title: Predicting expression levels of spatially unmeasured genes in a query spatial dataset based on ensemble learning
+Version: 1.0
+Authors@R: 
+    c(
+    person(given = "Shi-Tong",
+           family = "Yang",
+           role = c("aut", "cre"),
+           email = "styang@mails.ccnu.edu.cn"),
+    person(given = "Xiao-Fei",
+           family = "Zhang",
+           role = c("aut"))
+    )
+Description: ENGEP is an ensemble learning tool for spatially unmeasured genes expression prediction.
+             It integrates the results of different reference datasets and prediction methods, 
+             instead of relying on a single reference dataset or method.
+License: GPL (>= 2)
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
+Imports: 
+    caret,
+    Matrix,
+    parallel,
+    propr,
+    proxy,
+    proxyC,
+    Seurat,
+    stats
+Depends: 
+    R (>= 2.10)
