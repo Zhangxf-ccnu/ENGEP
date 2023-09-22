@@ -10,6 +10,7 @@ engep_predict(
   pre_genes,
   nCpus = 6,
   simi_list = NULL,
+  n0 = NULL,
   parallel = TRUE,
   k_list = NULL,
   get_baes = FALSE,
@@ -31,6 +32,8 @@ predict the intersection of unique genes of each references.}
 similarity measures used should be chosen from the ten similarity measures mentioned in the
 document. Default is c("pearson",  "spearman","cosine", "jaccard","weighted_rank",
 "manhattan","canberra","euclidean", "phi_s","rho_p")}
+
+\item{n0}{the number of cells of sub-reference dataset, default is 8000.}
 
 \item{parallel}{a logical value to indicate if the process should be run parallelly in multiple threads,
 default to TURE.}
