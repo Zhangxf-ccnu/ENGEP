@@ -2,7 +2,7 @@
 R package supporting the paper "**ENGEP: advancing spatial transcriptomics with accurate unmeasured gene expression prediction**". 
 
 ENGEP combins multiple prediction results from different reference datasets and prediction methods using a weighted average ensemble strategy to predict expression levels of spatially unmeasured genes. ENGEP mainly includes two steps: (i) generating multiple base results using k-nearest-neighbor (k-NN) regression. Different reference datasets, similarity measures, and numbers of neighbors (k) are used for this step. (ii) Combining these base results into a consensus result using a weighted average ensemble strategy. In this step, weights are assigned to different reference datasets to take into account their predictive power. 
-![image](https://github.com/Zhangxf-ccnu/ENGEP/blob/master/docs/Figure1.jpg)
+![image](https://github.com/Zhangxf-ccnu/ENGEP/blob/main/docs/Figure1.jpg)
 
 The source code is also deposited in Zenodo with a DOI assignment (DOI: https://doi.org/10.5281/zenodo.8365572).
 
