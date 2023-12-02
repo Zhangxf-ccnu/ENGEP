@@ -14,7 +14,7 @@ Authors@R:
 Description: ENGEP is an ensemble learning tool for spatially unmeasured genes expression prediction.
              It integrates the results of different reference datasets and prediction methods, 
              instead of relying on a single reference dataset or method.
-License: GPL (>= 2)
+License: MIT
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
