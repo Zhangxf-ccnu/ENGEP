@@ -7,16 +7,11 @@
 #' @param pre_genes an array contains names of genes to be predicted, if is NULL, ENGEP will
 #'     predict the intersection of unique genes of each references. If you let pre_genes = NULL,
 #'     we suggest you to use reference datasets with high variable genes.
-#' @param n0 the number of cells of sub-reference dataset, default is 8000
 #'
 #' @return a list contains equal-sized reference sub-datasets with common genes and predicted genes,
 #'     spatial dataset with common genes, and unique genes in references.
 #'
-gene_dataliat <- function(spa_counts,ref_list,pre_genes,n0){
-  if(is.null(n0)){
-    n0 = 8000
-  }
-  print(paste("size of sub-reference is", n0, "cells", sep = ""))
+gene_dataliat <- function(spa_counts,ref_list,pre_genes){
   ref_common = list()
   ref_pre = list()
   common_genes = rownames(as.matrix(spa_counts))
@@ -38,7 +33,7 @@ gene_dataliat <- function(spa_counts,ref_list,pre_genes,n0){
 
   for (i in 1:length(ref_list)){
     n = ncol(as.matrix(ref_list[[i]]))
-    K = ceiling(n/n0)
+    K = ceiling(n/8000)
     sample_id = sample(rep(1:K, length.out=n))
     for(j in 1:K){
       sample_use = sample_id==j
@@ -65,7 +60,6 @@ gene_dataliat <- function(spa_counts,ref_list,pre_genes,n0){
 #'     similarity measures used should be chosen from the ten similarity measures mentioned in the
 #'     document. Default is c("pearson",  "spearman","cosine", "jaccard","weighted_rank",
 #'     "manhattan","canberra","euclidean", "phi_s","rho_p")
-#' @param n0 the number of cells of sub-reference dataset, default is 8000.
 #' @param parallel a logical value to indicate if the process should be run parallelly in multiple threads,
 #'     default to TURE.
 #' @param k_list a list contains different values of $k$ (number of neighbors in knn),
@@ -78,7 +72,7 @@ gene_dataliat <- function(spa_counts,ref_list,pre_genes,n0){
 #' @return the predicted expression levels of unmeasured genes.
 #'
 
-engep_predict <- function(spa_counts,ref_list,pre_genes,nCpus=6,simi_list= NULL,n0= NULL,
+engep_predict <- function(spa_counts,ref_list,pre_genes,nCpus=6,simi_list= NULL,
                           parallel=TRUE,k_list = NULL,get_baes=FALSE,get_weight=FALSE){
 
   if(is.null(simi_list)){
@@ -96,7 +90,7 @@ engep_predict <- function(spa_counts,ref_list,pre_genes,nCpus=6,simi_list= NULL,
   }
 
   message("Partition large reference")
-  data_list = gene_dataliat(spa_counts,ref_list,pre_genes,n0)
+  data_list = gene_dataliat(spa_counts,ref_list,pre_genes)
   rm(ref_list)
   gc()
 
@@ -107,7 +101,7 @@ engep_predict <- function(spa_counts,ref_list,pre_genes,nCpus=6,simi_list= NULL,
   k_r = length(data_list$ref_c)
   if (parallel==TRUE){
     message("Run ENGEP parallelly to get base results")
-    result_single = parallel::mclapply(1:k_r, imp_new, data_list$qur_c,data_list$ref_c,simi_list,k_list,data_list$ref_p,mc.cores=nCpus)
+    result_single = parallel::mclapply(1:k_r, imp_new, data_list$qur_c,data_list$ref_c,simi_list,k_list,data_list$ref_p,mc.cores=6)
   }else{
     message("Run ENGEP in one thread to get base results")
     result_single =lapply(1:k_r, imp_new, data_list$qur_c,data_list$ref_c,simi_list,k_list,data_list$ref_p)
@@ -205,23 +199,36 @@ imp_new <- function(i,spcom,sccomlist,similist,k.list,sc_implist){
 #'
 #' @examples
 ensemble_result <- function(result_single,get_weight=FALSE){
-  r2_vec <- rep(0,length(result_single))
-  for(i in 1:length(result_single)){
-    r2_vec[i]=result_single[[i]]$r2
-  }
-
-  r2_vec <-weight_r2(r2_vec)
-  weight_vec_k = r2_vec/sum(r2_vec)
-
-  fianl_re <- matrix(0,nrow = dim(result_single[[1]]$exp)[1],ncol = dim(result_single[[1]]$exp)[2])
-
-  for (i in 1:length(result_single)){
-    fianl_re <- fianl_re + result_single[[i]]$exp * weight_vec_k[i]
-  }
-  if(get_weight==TRUE){
-    return(list("exp"=fianl_re,"weight"=weight_vec_k))
+  re_len = length(result_single)
+  if (re_len == 1){
+    print("Note that only a single base result is used, and no ensemble strategy is applied.")
+    fianl_re = result_single[[1]]$exp
+    weight_vec_k = result_single[[1]]$r2 
+    if(get_weight==TRUE){
+      return(list("exp"=fianl_re,"weight"=weight_vec_k))
+    }else{
+      return(fianl_re)
+    }
+    
   }else{
-    return(fianl_re)
+    r2_vec <- rep(0,length(result_single))
+    for(i in 1:length(result_single)){
+      r2_vec[i]=result_single[[i]]$r2
+    }
+    
+    r2_vec <-weight_r22(r2_vec)
+    weight_vec_k = r2_vec/sum(r2_vec)
+    
+    fianl_re <- matrix(0,nrow = dim(result_single[[1]]$exp)[1],ncol = dim(result_single[[1]]$exp)[2])
+    
+    for (i in 1:length(result_single)){
+      fianl_re <- fianl_re + result_single[[i]]$exp * weight_vec_k[i]
+    }
+    if(get_weight==TRUE){
+      return(list("exp"=fianl_re,"weight"=weight_vec_k))
+    }else{
+      return(fianl_re)
+    }
   }
 }
 
@@ -233,9 +240,13 @@ ensemble_result <- function(result_single,get_weight=FALSE){
 #'
 #' @examples
 weight_r2<-function(r2_vec){
-  a=(0.9-0.1)/(max(r2_vec)-min(r2_vec))
+  if (max(r2_vec) == min(r2_vec)){
+    rec_n = r2_vec
+  }
+  else{a=(0.9-0.1)/(max(r2_vec)-min(r2_vec))
   b=((0.9+0.1)-a*(max(r2_vec)+min(r2_vec)))/2
-  rec_n=a*r2_vec +b
+  rec_n=a*r2_vec +b}
+  
   return (rec_n)
 }
 
@@ -301,7 +312,7 @@ compute_simi <- function(spcom,sccom,similarity) {
   } else if (similarity == "phi_s") {
     mat <- cbind(as.matrix(spcom@assays$RNA@counts),
                  as.matrix(sccom@assays$RNA@counts))
-    dis =  propr::phis(mat, select = colnames(mat))@matrix
+    dis = propr::propr(mat,metric = "phs")@matrix
     dist_m <- dis[1:dim(spcom@assays$RNA@counts)[2],(dim(spcom@assays$RNA@counts)[2]+1):dim(mat)[2]]
     dist_m[is.na(dist_m) | is.infinite(dist_m)] <- max(dist_m,na.rm=TRUE)
     corMat <- 1/(1+dist_m)
@@ -309,7 +320,7 @@ compute_simi <- function(spcom,sccom,similarity) {
   } else if (similarity == "rho_p") {
     mat <- cbind(as.matrix(spcom@assays$RNA@counts),
                  as.matrix(sccom@assays$RNA@counts))
-    cor = propr::perb(mat, select = colnames(mat))@matrix
+    cor = propr::propr(mat,metric = "rho")@matrix
     corMat <- cor[1:dim(spcom@assays$RNA@counts)[2],(dim(spcom@assays$RNA@counts)[2]+1):dim(mat)[2]]
     corMat[is.na(corMat) | is.infinite(corMat)] <- -1
 
