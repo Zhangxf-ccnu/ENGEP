@@ -216,7 +216,7 @@ ensemble_result <- function(result_single,get_weight=FALSE){
       r2_vec[i]=result_single[[i]]$r2
     }
     
-    r2_vec <-weight_r22(r2_vec)
+    r2_vec <-weight_r2(r2_vec)
     weight_vec_k = r2_vec/sum(r2_vec)
     
     fianl_re <- matrix(0,nrow = dim(result_single[[1]]$exp)[1],ncol = dim(result_single[[1]]$exp)[2])
